@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status Page Startup - AWS Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .architecture-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .vpc-container {
+            border: 3px solid #ff6b35;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            background: linear-gradient(135deg, #fff5f2 0%, #ffe8e1 100%);
+            position: relative;
+        }
+
+        .vpc-title {
+            position: absolute;
+            top: -15px;
+            right: 20px;
+            background: #ff6b35;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .subnet {
+            border: 2px solid #4ecdc4;
+            border-radius: 8px;
+            margin: 15px 10px;
+            padding: 15px;
+            background: linear-gradient(135deg, #f0fffe 0%, #e6fffc 100%);
+            position: relative;
+        }
+
+        .subnet-title {
+            position: absolute;
+            top: -12px;
+            right: 15px;
+            background: #4ecdc4;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .component {
+            background: white;
+            border: 2px solid #45b7d1;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .component:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .component-title {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .component-details {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .cost {
+            background: #e8f5e8;
+            color: #27ae60;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        .flow-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .flow-step {
+            background: white;
+            border: 2px solid #6c757d;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .step-number {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            background: #007bff;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .total-cost {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .internet-gateway {
+            background: #ffeaa7;
+            border: 2px solid #fdcb6e;
+            text-align: center;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .arrow {
+            text-align: center;
+            font-size: 2rem;
+            color: #6c757d;
+            margin: 10px 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .security-note {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f1f3f4;
+            border-radius: 8px 8px 0 0;
+            overflow: hidden;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 15px;
+            background: #e9ecef;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #007bff;
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Status Page Startup - AWS Architecture</h1>
+        
+        <div class="architecture-container">
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="showTab('architecture')">ארכיטקטורה</button>
+                <button class="nav-tab" onclick="showTab('implementation')">סדר יישום</button>
+                <button class="nav-tab" onclick="showTab('costs')">פירוט עלויות</button>
+            </div>
+
+            <div id="architecture" class="tab-content active">
+                <h2 style="text-align: center; margin-bottom: 20px;">מבנה הארכיטקטורה המלא</h2>
+                
+                <div class="internet-gateway">
+                    Internet Gateway
+                    <div style="font-size: 0.8rem; color: #666;">חינם - שער לאינטרנט</div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="vpc-container">
+                    <div class="vpc-title">VPC (Virtual Private Cloud)</div>
+                    
+                    <div class="component">
+                        <div class="component-title">Application Load Balancer</div>
+                        <div class="component-details">
+                            • SSL certificate management (חינם!)<br>
+                            • Health checks + auto-recovery<br>
+                            • מוכן לscaling עתידי<br>
+                            • DDoS protection מובנה<br>
+                            • WAF integration
+                        </div>
+                        <span class="cost">$18/חודש</span>
+                    </div>
+                    
+                    <div class="arrow">↓</div>
+                    
+                    <div class="grid">
+                        <div class="subnet">
+                            <div class="subnet-title">Public Subnet</div>
+                            
+                            <div class="component">
+                                <div class="component-title">NAT Gateway</div>
+                                <div class="component-details">
+                                    • גישה לאינטרנט לרשת הפרטית<br>
+                                    • יוצא בלבד (אבטחה)
+                                </div>
+                                <span class="cost">$32/חודש</span>
+                            </div>
+                        </div>
+                        
+                        <div class="subnet">
+                            <div class="subnet-title">Private Subnet</div>
+                            
+                            <div class="component">
+                                <div class="component-title">EC2 Instance (t3.small)</div>
+                                <div class="component-details">
+                                    • Amazon Linux 2023<br>
+                                    • 2 vCPU, 2GB RAM<br>
+                                    • Django + Gunicorn + Nginx
+                                </div>
+                                <span class="cost">$15/חודש</span>
+                            </div>
+                            
+                            <div class="component">
+                                <div class="component-title">RDS PostgreSQL (db.t3.micro)</div>
+                                <div class="component-details">
+                                    • 1 vCPU, 1GB RAM<br>
+                                    • Multi-AZ deployment<br>
+                                    • גיבויים אוטומטיים
+                                </div>
+                                <span class="cost">$13/חודש</span>
+                            </div>
+                            
+                            <div class="component">
+                                <div class="component-title">ElastiCache Redis (t3.micro)</div>
+                                <div class="component-details">
+                                    • 1 vCPU, 0.5GB RAM<br>
+                                    • In-memory cache<br>
+                                    • Session storage
+                                </div>
+                                <span class="cost">$13/חודש</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid" style="margin-top: 20px;">
+                    <div class="component">
+                        <div class="component-title">S3 Bucket</div>
+                        <div class="component-details">
+                            • Static files<br>
+                            • Backups<br>
+                            • Logs storage
+                        </div>
+                        <span class="cost">$5/חודש</span>
+                    </div>
+                    
+                    <div class="component">
+                        <div class="component-title">CloudFront CDN</div>
+                        <div class="component-details">
+                            • Content delivery<br>
+                            • Global edge locations<br>
+                            • HTTPS acceleration
+                        </div>
+                        <span class="cost">$10/חודש</span>
+                    </div>
+                    
+                    <div class="component">
+                        <div class="component-title">Route 53 DNS</div>
+                        <div class="component-details">
+                            • Domain management<br>
+                            • Health checks<br>
+                            • DNS routing
+                        </div>
+                        <span class="cost">$0.50/חודש</span>
+                    </div>
+                </div>
+                
+                <div class="security-note">
+                    <strong>אבטחה:</strong> WAF ($15/חודש), CloudWatch Monitoring ($10/חודש), AWS Certificate Manager (חינם)
+                </div>
+                
+                <div class="total-cost">
+                    סה"כ עלות Production: $131/חודש
+                </div>
+            </div>
+
+            <div id="implementation" class="tab-content">
+                <h2 style="text-align: center; margin-bottom: 20px;">סדר יישום המערכת</h2>
+                
+                <div class="flow-container">
+                    <div class="flow-step">
+                        <div class="step-number">1</div>
+                        <strong>הקמת תשתית רשת</strong>
+                        <ul>
+                            <li>יצירת VPC עם CIDR: 10.0.0.0/16</li>
+                            <li>Public Subnet: 10.0.1.0/24</li>
+                            <li>Private Subnet: 10.0.2.0/24</li>
+                            <li>Internet Gateway + Route Tables</li>
+                            <li>NAT Gateway</li>
+                        </ul>
+                        <div style="margin-top: 10px;"><strong>זמן:</strong> 30 דקות | <strong>עלות:</strong> $32/חודש</div>
+                    </div>
+                    
+                    <div class="flow-step">
+                        <div class="step-number">2</div>
+                        <strong>הגדרת Security Groups</strong>
+                        <ul>
+                            <li>ALB-SG: פורטים 80,443 מהאינטרנט</li>
+                            <li>EC2-SG: פורט 8000 מה-ALB בלבד</li>
+                            <li>RDS-SG: פורט 5432 מה-EC2 בלבד</li>
+                            <li>Redis-SG: פורט 6379 מה-EC2 בלבד</li>
+                        </ul>
+                        <div style="margin-top: 10px;"><strong>זמן:</strong> 20 דקות | <strong>עלות:</strong> חינם</div>
+                    </div>
+                    
+                    <div class="flow-step">
+                        <div class="step-number">3</div>
+                        <strong>הקמת בסיסי נתונים</strong>
+                        <ul>
+                            <li>RDS PostgreSQL - db.t3.micro</li>
+                            <li>ElastiCache Redis - cache.t3.micro</li>
+                            <li>הגדרת Subnet Groups</li>
+                            <li>הגדרת פרמטרים</li>
+                        </ul>
+                        <div style="margin-top: 10px;"><strong>זמן:</strong> 45 דקות | <strong>עלות:</strong> $26/חודש</div>
+                    </div>
+                    
+                    <div class="flow-step">
+                        <div class="step-number">4</div>
+                        <strong>הכנת AMI וEC2 Instance</strong>
+                        <ul>
+                            <li>השקת EC2 עם Amazon Linux 2023</li>
+                            <li>התקנת Python 3.10, Dependencies</li>
+                            <li>התקנת האפליקציה לפי המדריך</li>
+                            <li>הגדרת Systemd services</li>
+                            <li>יצירת AMI</li>
+                        </ul>
+                        <div style="margin-top: 10px;"><strong>זמן:</strong> 2 שעות | <strong>עלות:</strong> $15/חודש</div>
+                    </div>
+                    
+                    <div class="flow-step">
+                        <div class="step-number">5</div>
+                        <strong>הגדרת Load Balancer</strong>
+                        <ul>
+                            <li>יצירת Application Load Balancer</li>
+                            <li>הגדרת Target Groups</li>
+                            <li>הגדרת Health Checks</li>
+                            <li>הגדרת SSL Certificate</li>
+                        </ul>
+                        <div style="margin-top: 10px;"><strong>זמן:</strong> 30 דקות | <strong>עלות:</strong> $18/חודש</div>
+                    </div>
+                    
+                    <div class="flow-step">
+                        <div class="step-number">6</div>
+                        <strong>S3 ו-CloudFront</strong>
+                        <ul>
+                            <li>יצירת S3 Bucket</li>
+                            <li>העלאת Static Files</li>
+                            <li>הגדרת CloudFront Distribution</li>
+                            <li>הגדרת HTTPS</li>
+                        </ul>
+                        <div style="margin-top: 10px;"><strong>זמן:</strong> 45 דקות | <strong>עלות:</strong> $15/חודש</div>
+                    </div>
+                    
+                    <div class="flow-step">
+                        <div class="step-number">7</div>
+                        <strong>Monitoring ואבטחה</strong>
+                        <ul>
+                            <li>הגדרת CloudWatch Alarms</li>
+                            <li>הגדרת WAF Rules</li>
+                            <li>הגדרת CloudTrail</li>
+                            <li>הגדרת AWS Backup</li>
+                        </ul>
+                        <div style="margin-top: 10px;"><strong>זמן:</strong> 1 שעה | <strong>עלות:</strong> $25/חודש</div>
+                    </div>
+                    
+                    <div class="flow-step">
+                        <div class="step-number">8</div>
+                        <strong>CI/CD Pipeline</strong>
+                        <ul>
+                            <li>הגדרת CodeCommit Repository</li>
+                            <li>יצירת CodeBuild Project</li>
+                            <li>הגדרת CodeDeploy Application</li>
+                            <li>יצירת Pipeline</li>
+                        </ul>
+                        <div style="margin-top: 10px;"><strong>זמן:</strong> 1.5 שעות | <strong>עלות:</strong> $10/חודש</div>
+                    </div>
+                </div>
+                
+                <div class="total-cost">
+                    זמן יישום כולל: 6-8 שעות עבודה
+                </div>
+            </div>
+
+            <div id="costs" class="tab-content">
+                <h2 style="text-align: center; margin-bottom: 20px;">פירוט מלא של העלויות</h2>
+                
+                <div class="grid">
+                    <div class="component">
+                        <div class="component-title">Production Environment</div>
+                        <div class="component-details">
+                            • EC2 t3.small: $15<br>
+                            • RDS db.t3.micro: $13<br>
+                            • ElastiCache t3.micro: $13<br>
+                            • Application Load Balancer: $18<br>
+                            • NAT Gateway: $32<br>
+                            • S3 Standard: $5<br>
+                            • CloudFront: $10<br>
+                            • Route 53: $0.50<br>
+                            • CloudWatch: $10<br>
+                            • WAF: $15<br>
+                            • AWS Backup: $5
+                        </div>
+                        <span class="cost">$136.50/חודש</span>
+                    </div>
+                    
+                    <div class="component">
+                        <div class="component-title">Development Environment</div>
+                        <div class="component-details">
+                            • EC2 t3.nano: $4<br>
+                            • RDS db.t3.micro: $13<br>
+                            • ElastiCache t3.micro: $13<br>
+                            • S3 + misc: $5
+                        </div>
+                        <span class="cost">$35/חודש</span>
+                    </div>
+                    
+                    <div class="component">
+                        <div class="component-title">CI/CD & DevOps</div>
+                        <div class="component-details">
+                            • CodeBuild: $10<br>
+                            • CloudTrail: $2<br>
+                            • Extra monitoring: $18
+                        </div>
+                        <span class="cost">$30/חודש</span>
+                    </div>
+                    
+                    <div class="component">
+                        <div class="component-title">חירום ורזרבה</div>
+                        <div class="component-details">
+                            • עלויות נוספות לא צפויות<br>
+                            • רזרבה לגידול בתעבורה<br>
+                            • עלויות data transfer נוספות
+                        </div>
+                        <span class="cost">$98.50/חודש</span>
+                    </div>
+                </div>
+                
+                <div class="total-cost">
+                    סה"כ כולל: $300/חודש
+                </div>
+                
+                <div style="margin-top: 20px; background: #e3f2fd; padding: 15px; border-radius: 8px;">
+                    <h3>אופטימיזציות לחיסכון:</h3>
+                    <ul>
+                        <li><strong>Reserved Instances</strong>: חיסכון של 30% אחרי 3 חודשים</li>
+                        <li><strong>Spot Instances</strong>: לסביבת development - חיסכון של 70%</li>
+                        <li><strong>כיבוי סביבת Dev</strong>: בלילות וסופי שבוע - חיסכון $15/חודש</li>
+                        <li><strong>S3 Intelligent Tiering</strong>: חיסכון על אחסון - 20% חיסכון</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
