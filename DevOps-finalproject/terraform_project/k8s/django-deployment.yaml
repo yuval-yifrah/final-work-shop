@@ -1,0 +1,127 @@
+---
+# k8s/django-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: django-config
+  namespace: default
+data:
+  ALLOWED_HOSTS: "*"
+  DEBUG: "False"
+  DATABASE_HOST: "ly-statuspage-rds.cx248m4we6k7.us-east-1.rds.amazonaws.com"  # Will be replaced after terraform apply
+  DATABASE_NAME: "statuspage"
+  DATABASE_PORT: "5432"
+  REDIS_HOST: "ly-statuspage-redis.7fftml.ng.0001.use1.cache.amazonaws.com"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+
+---
+# k8s/django-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: django-secrets
+  namespace: default
+type: Opaque
+stringData:
+  DATABASE_USER: "ly_statuspage"
+  DATABASE_PASSWORD: "LYfinalproject!"
+  SECRET_KEY: "ly-django-secret-1756990561-6926"  # Generate a proper one
+  REDIS_PASSWORD: ""  # Empty for temporary Redis
+
+---
+# k8s/django-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-app
+  namespace: default
+  labels:
+    app: django-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: django-app
+  template:
+    metadata:
+      labels:
+        app: django-app
+    spec:
+      containers:
+      - name: django
+        image: "992382545251.dkr.ecr.us-east-1.amazonaws.com/ly-statuspage-repo:latest"  # Will be replaced with actual ECR URL
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: django-config
+        - secretRef:
+            name: django-secrets
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+# k8s/django-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-service
+  namespace: default
+  labels:
+    app: django-app
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 8000
+    nodePort: 30080
+    protocol: TCP
+    name: http
+  selector:
+    app: django-app
+
+---
+# k8s/django-hpa.yaml - Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: django-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: django-app
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
